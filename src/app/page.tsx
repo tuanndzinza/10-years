@@ -1,14 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { MemoryLoader } from "@/components/MemoryLoader";
-import { AnimatePresence, motion } from "framer-motion";
-import gsap from "gsap";
-import { HeroOverview } from "@/components/HeroOverview";
 import { CEOMessage } from "@/components/CEOMessage";
-import { TimelineOverview } from "@/components/TimelineOverview";
 import { FinalReflection } from "@/components/FinalReflection";
-import { TimelineIndicator } from "@/components/TimelineIndicator";
+import { HeroOverview } from "@/components/HeroOverview";
+import { MemoryLoader } from "@/components/MemoryLoader";
 import { Year2016 } from "@/years/Year2016";
 import { Year2017 } from "@/years/Year2017";
 import { Year2018 } from "@/years/Year2018";
@@ -20,6 +15,9 @@ import { Year2023 } from "@/years/Year2023";
 import { Year2024 } from "@/years/Year2024";
 import { Year2025 } from "@/years/Year2025";
 import { Year2026 } from "@/years/Year2026";
+import { AnimatePresence, motion } from "framer-motion";
+import gsap from "gsap";
+import React, { useEffect, useRef, useState } from "react";
 
 type SectionConfig =
   | { id: string; type: "hero" | "ceo" | "timeline" | "final" }
@@ -33,8 +31,6 @@ export default function Home() {
 
   const sections: SectionConfig[] = [
     { id: "hero", type: "hero" },
-    { id: "ceo", type: "ceo" },
-    { id: "timeline", type: "timeline" },
     { id: "year-2016", type: "year", year: 2016 },
     { id: "year-2017", type: "year", year: 2017 },
     { id: "year-2018", type: "year", year: 2018 },
@@ -46,6 +42,7 @@ export default function Home() {
     { id: "year-2024", type: "year", year: 2024 },
     { id: "year-2025", type: "year", year: 2025 },
     { id: "year-2026", type: "year", year: 2026 },
+    { id: "ceo", type: "ceo" },
     { id: "final", type: "final" },
   ];
 
@@ -137,13 +134,6 @@ export default function Home() {
         </section>
       );
     }
-    if (config.type === "timeline") {
-      return (
-        <section key={config.id} className="h-screen w-screen flex-shrink-0">
-          <TimelineOverview />
-        </section>
-      );
-    }
     if (config.type === "final") {
       return (
         <section key={config.id} className="h-screen w-screen flex-shrink-0">
@@ -183,10 +173,7 @@ export default function Home() {
     })();
 
     return (
-      <section
-        key={config.id}
-        className="h-screen w-screen flex-shrink-0 bg-black"
-      >
+      <section key={config.id} className="h-screen w-screen shrink-0 bg-black">
         <YearSlide
           isActive={isActive}
           onEdgeScroll={(direction, canLeave) =>
@@ -208,11 +195,6 @@ export default function Home() {
           }}
         />
       )}
-
-      <TimelineIndicator
-        years={yearsOnly.map((y) => y.year)}
-        activeYear={activeYear}
-      />
 
       <motion.main
         className="h-screen w-screen bg-[#020617] text-white overflow-hidden"

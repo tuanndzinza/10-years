@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable react-hooks/purity */
 "use client";
 
@@ -6,200 +7,235 @@ import { motion } from "framer-motion";
 
 type MemoryLoaderProps = {
   onFinish?: () => void;
-  photos?: string[];
 };
 
-type CardLayout = {
+type Phase = "scatter" | "gather" | "focus" | "outro";
+
+type MemoryCard = {
   id: number;
-  photo: string;
-  initialLeft: number;
-  initialTop: number;
-  collageLeft: number;
-  collageTop: number;
-  initialRotate: number;
-  collageRotate: number;
-  delay: number;
+  src: string;
+  startX: number;
+  startY: number;
+  startRot: number;
+  targetX: number;
+  targetY: number;
+  targetRot: number;
 };
 
-type Phase = "float" | "converge" | "exit";
-
-const DEFAULT_PHOTOS = [
-  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1519744792095-2f2205e87b6f?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?auto=format&fit=crop&w=900&q=80",
+const IMAGE_SOURCES = [
+  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=700&q=80",
+  "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=700&q=80",
+  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=700&q=80",
+  "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=700&q=80",
+  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=700&q=80",
+  "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=700&q=80",
+  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=700&q=80",
 ];
 
-const FLOAT_DURATION = 3; // seconds
-const CONVERGE_DURATION = 1.4; // seconds
-const EXIT_DURATION = 0.9; // seconds
+const SCATTER_DURATION = 1.3;
+const GATHER_DURATION = 1.8;
+const FOCUS_HOLD = 3.0;
+const OUTRO_DURATION = 1.0;
+const TOTAL_DURATION =
+  SCATTER_DURATION + GATHER_DURATION + FOCUS_HOLD + OUTRO_DURATION;
 
-export const MemoryLoader: React.FC<MemoryLoaderProps> = ({
-  onFinish,
-  photos = DEFAULT_PHOTOS,
-}) => {
-  const [phase, setPhase] = useState<Phase>("float");
-  const [showTitle, setShowTitle] = useState(false);
+const TITLE_TEXT = "10 Năm – Dấu Ấn Zinza";
 
-  const cards = useMemo<CardLayout[]>(() => {
-    const usedPhotos = photos.length ? photos : DEFAULT_PHOTOS;
-    const cardCount = Math.min(18, usedPhotos.length * 3);
+export const MemoryLoader: React.FC<MemoryLoaderProps> = ({ onFinish }) => {
+  const [phase, setPhase] = useState<Phase>("scatter");
+  const [typedText, setTypedText] = useState("");
 
-    const collageGrid: { left: number; top: number }[] = [];
-    const rows = 3;
-    const cols = 4;
-    const startLeft = 50 - (cols * 11) / 2;
-    const startTop = 50 - (rows * 15) / 2;
-    for (let r = 0; r < rows; r += 1) {
-      for (let c = 0; c < cols; c += 1) {
-        collageGrid.push({
-          left: startLeft + c * 11,
-          top: startTop + r * 15,
-        });
+  const cards = useMemo<MemoryCard[]>(() => {
+    const count = 26;
+    const result: MemoryCard[] = [];
+
+    // "1" stroke for the 10 (slightly thicker, clearer)
+    const onePoints: { x: number; y: number }[] = [];
+    const oneX = 40;
+    for (let i = 0; i < 8; i += 1) {
+      onePoints.push({ x: oneX, y: 30 + i * 5 });
+      if (i > 0 && i < 7) {
+        onePoints.push({ x: oneX + 4, y: 30 + i * 5 });
       }
     }
 
-    return Array.from({ length: cardCount }).map((_, i) => {
-      const photo = usedPhotos[i % usedPhotos.length];
-      const initialLeft = 10 + Math.random() * 80;
-      const initialTop = 10 + Math.random() * 80;
-      const initialRotate = -12 + Math.random() * 24;
-      const grid = collageGrid[i % collageGrid.length];
-      const collageRotate = -6 + Math.random() * 12;
-      const delay = Math.random() * 0.5;
-
+    // "0" ellipse to the right of "1" (denser sampling)
+    const zeroCenter = { x: 62, y: 50 };
+    const zeroRadiusX = 10;
+    const zeroRadiusY = 16;
+    const zeroAngles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+    const zeroPoints = zeroAngles.map((deg) => {
+      const rad = (deg * Math.PI) / 180;
       return {
-        id: i,
-        photo,
-        initialLeft,
-        initialTop,
-        collageLeft: grid.left,
-        collageTop: grid.top,
-        initialRotate,
-        collageRotate,
-        delay,
+        x: zeroCenter.x + Math.cos(rad) * zeroRadiusX,
+        y: zeroCenter.y + Math.sin(rad) * zeroRadiusY,
       };
     });
-  }, [photos]);
+
+    const shapePoints = [...onePoints, ...zeroPoints];
+
+    for (let i = 0; i < count; i += 1) {
+      const src = IMAGE_SOURCES[i % IMAGE_SOURCES.length];
+      const startX = Math.random() * 100;
+      const startY = Math.random() * 100;
+      const startRot = -12 + Math.random() * 24;
+      const target = shapePoints[i % shapePoints.length];
+      const targetRot = -8 + Math.random() * 16;
+
+      result.push({
+        id: i,
+        src,
+        startX,
+        startY,
+        startRot,
+        targetX: target.x,
+        targetY: target.y,
+        targetRot,
+      });
+    }
+
+    return result;
+  }, []);
 
   useEffect(() => {
-    const floatTimeout = window.setTimeout(() => {
-      setPhase("converge");
-      setShowTitle(true);
-    }, FLOAT_DURATION * 1000);
-
-    const exitTimeout = window.setTimeout(
-      () => {
-        setPhase("exit");
-        window.setTimeout(() => {
-          onFinish?.();
-        }, EXIT_DURATION * 1000);
-      },
-      (FLOAT_DURATION + CONVERGE_DURATION + 0.6) * 1000,
+    const scatterTimeout = window.setTimeout(
+      () => setPhase("gather"),
+      SCATTER_DURATION * 1000,
     );
+    const focusTimeout = window.setTimeout(
+      () => setPhase("focus"),
+      (SCATTER_DURATION + GATHER_DURATION) * 1000,
+    );
+    const outroTimeout = window.setTimeout(
+      () => setPhase("outro"),
+      (SCATTER_DURATION + GATHER_DURATION + FOCUS_HOLD) * 1000,
+    );
+    const finishTimeout = window.setTimeout(() => {
+      onFinish?.();
+    }, TOTAL_DURATION * 1000);
 
     return () => {
-      window.clearTimeout(floatTimeout);
-      window.clearTimeout(exitTimeout);
+      window.clearTimeout(scatterTimeout);
+      window.clearTimeout(focusTimeout);
+      window.clearTimeout(outroTimeout);
+      window.clearTimeout(finishTimeout);
     };
   }, [onFinish]);
 
+  useEffect(() => {
+    if (phase !== "focus") return;
+
+    let index = 0;
+    const interval = window.setInterval(() => {
+      index += 1;
+      setTypedText(TITLE_TEXT.slice(0, index));
+      if (index >= TITLE_TEXT.length) {
+        window.clearInterval(interval);
+      }
+    }, 110);
+
+    return () => window.clearInterval(interval);
+  }, [phase]);
+
+  const isOutro = phase === "outro";
+
   return (
     <motion.div
-      className="fixed inset-0 z-50 overflow-hidden bg-[#050508]"
-      initial={{ opacity: 1, scale: 1 }}
-      animate={{
-        opacity: phase === "exit" ? 0 : 1,
-        scale: phase === "exit" ? 1.1 : 1,
-      }}
-      transition={{ duration: EXIT_DURATION, ease: "easeInOut" }}
+      className="fixed inset-0 z-50 overflow-hidden bg-[#050509]"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: isOutro ? 0 : 1 }}
+      transition={{ duration: OUTRO_DURATION, ease: "easeInOut" }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.22),transparent_55%),radial-gradient(circle_at_bottom,_rgba(147,51,234,0.22),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.15),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.25),transparent_60%),radial-gradient(circle_at_bottom,rgba(147,51,234,0.25),transparent_60%)] mix-blend-screen" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.6),transparent_80%)]" />
 
-      <div className="relative h-full w-full">
-        {cards.map((card) => {
-          const isConverging = phase !== "float";
+      <div className="relative flex h-full w-full items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.65)_60%,rgba(0,0,0,0.95)_100%)]" />
 
-          const floatOffsetX = (Math.random() - 0.5) * 16;
-          const floatOffsetY = (Math.random() - 0.5) * 16;
-
-          return (
-            <motion.div
-              key={card.id}
-              className="absolute w-32 h-20 sm:w-40 sm:h-28 rounded-lg overflow-hidden shadow-[0_0_25px_rgba(15,23,42,0.9)] border border-white/5 bg-slate-900/80"
-              style={{
-                left: `${card.initialLeft}%`,
-                top: `${card.initialTop}%`,
-              }}
-              initial={{
-                opacity: 0,
-                scale: 0,
-                rotate: card.initialRotate,
-              }}
-              animate={
-                isConverging
-                  ? {
-                      opacity: 1,
-                      scale: 1,
-                      left: `${card.collageLeft}%`,
-                      top: `${card.collageTop}%`,
-                      rotate: card.collageRotate,
-                    }
-                  : {
-                      opacity: 1,
-                      scale: 1,
-                      x: [0, floatOffsetX, -floatOffsetX * 0.4, 0],
-                      y: [0, floatOffsetY, -floatOffsetY * 0.4, 0],
-                      rotate: [
-                        card.initialRotate,
-                        card.initialRotate + 3,
-                        card.initialRotate - 2,
-                        card.initialRotate,
-                      ],
-                    }
-              }
-              transition={
-                isConverging
-                  ? {
-                      duration: CONVERGE_DURATION,
-                      ease: "easeInOut",
-                      delay: card.delay,
-                    }
-                  : {
-                      duration: FLOAT_DURATION,
-                      ease: "easeInOut",
-                      delay: card.delay,
-                    }
-              }
-            >
-              <div className="h-full w-full">
-                <div className="absolute inset-0 bg-gradient-to-tr from-slate-900/80 to-slate-800/40 z-0" />
+        <div className="relative h-full w-full">
+          {cards.map((card) => {
+            const isGathering =
+              phase === "gather" || phase === "focus" || phase === "outro";
+            return (
+              <motion.div
+                key={card.id}
+                className="absolute w-28 h-20 sm:w-32 sm:h-24 md:w-36 md:h-26 rounded-xl overflow-hidden shadow-[0_16px_40px_rgba(15,23,42,0.9)] border border-slate-700/70 bg-slate-900/90"
+                initial={{
+                  opacity: 0,
+                  scale: 0.8,
+                  rotate: card.startRot,
+                  left: `${card.startX}%`,
+                  top: `${card.startY}%`,
+                }}
+                animate={
+                  isGathering
+                    ? {
+                        opacity: 1,
+                        scale: 1,
+                        left: `${card.targetX}%`,
+                        top: `${card.targetY}%`,
+                        rotate: card.targetRot,
+                      }
+                    : {
+                        opacity: 1,
+                        scale: 1,
+                        left: `${card.startX}%`,
+                        top: `${card.startY}%`,
+                        rotate: card.startRot,
+                        y: [0, -4, 0],
+                      }
+                }
+                transition={{
+                  duration: isGathering ? GATHER_DURATION : 3.2,
+                  ease: "easeInOut",
+                  delay: Math.random() * 0.4,
+                  repeat: isGathering ? 0 : Infinity,
+                  repeatType: "reverse",
+                }}
+              >
                 <img
-                  src={card.photo}
-                  alt="Company memory"
-                  className="h-full w-full object-cover relative z-10"
+                  src={card.src}
+                  alt="Memory"
+                  className="h-full w-full object-cover"
                 />
-              </div>
-            </motion.div>
-          );
-        })}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-slate-900/40" />
+              </motion.div>
+            );
+          })}
 
-        {showTitle && (
-          <motion.div
-            className="pointer-events-none absolute inset-0 flex items-center justify-center"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
-            <div className="text-center px-4">
-              <p className="text-xs tracking-[0.4em] text-slate-300/80 uppercase">
-                10 YEARS OF JOURNEY
-              </p>
-            </div>
-          </motion.div>
-        )}
+          {phase === "focus" && (
+            <>
+              <motion.div
+                className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 sm:h-80 sm:w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.7),transparent_70%)]"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 0.8, scale: 1.1 }}
+                transition={{ duration: 0.9, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+              >
+                <p className="px-4 text-3xl md:text-5xl xl:text-6xl font-semibold tracking-tight text-slate-100">
+                  {typedText}
+                  <span className="inline-block w-3 align-middle">
+                    <motion.span
+                      className="inline-block h-5 w-full translate-y-[3px] bg-slate-200/90"
+                      animate={{ opacity: [0, 1, 0] }}
+                      transition={{
+                        duration: 0.6,
+                        ease: "easeInOut",
+                        repeat: Infinity,
+                      }}
+                    />
+                  </span>
+                </p>
+              </motion.div>
+            </>
+          )}
+        </div>
       </div>
     </motion.div>
   );

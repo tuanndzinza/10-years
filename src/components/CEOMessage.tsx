@@ -22,11 +22,10 @@ export const CEOMessage: React.FC = () => {
         <p className="text-slate-300 leading-relaxed">
           This is a placeholder for a personal message from leadership — a
           reflection on key moments, challenges, and lessons. In the final
-          version, this section will combine narrative, media, and motion to
-          set the tone for the journey through each year.
+          version, this section will combine narrative, media, and motion to set
+          the tone for the journey through each year.
         </p>
       </motion.div>
     </section>
   );
 };
-
