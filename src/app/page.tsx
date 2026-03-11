@@ -226,45 +226,51 @@ const YearSlide: React.FC<YearSlideProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    event.stopPropagation();
-    if (!isActive) return;
+  useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    const handleWheel = (event: WheelEvent) => {
+      event.stopPropagation();
+      if (!isActive) return;
+      const el = containerRef.current;
+      if (!el) return;
 
-    const deltaY = event.deltaY;
-    const atTop = el.scrollTop <= 0;
-    const atBottom =
-      Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
+      const deltaY = event.deltaY;
+      const atTop = el.scrollTop <= 0;
+      const atBottom =
+        Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
 
-    if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
-      event.preventDefault();
-      const target = el.scrollTop + deltaY;
-      gsap.to(el, {
-        scrollTop: target,
-        duration: 0.6,
-        ease: "power3.out",
-      });
-      return;
-    }
+      if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
+        event.preventDefault();
+        const target = el.scrollTop + deltaY;
+        gsap.to(el, {
+          scrollTop: target,
+          duration: 0.6,
+          ease: "power3.out",
+        });
+        return;
+      }
 
-    if (deltaY > 0 && atBottom) {
-      event.preventDefault();
-      onEdgeScroll("down", true);
-    } else if (deltaY < 0 && atTop) {
-      event.preventDefault();
-      onEdgeScroll("up", true);
-    }
-  };
+      if (deltaY > 0 && atBottom) {
+        event.preventDefault();
+        onEdgeScroll("down", true);
+      } else if (deltaY < 0 && atTop) {
+        event.preventDefault();
+        onEdgeScroll("up", true);
+      }
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [isActive, onEdgeScroll]);
 
   return (
-    <div className="h-full w-full" onWheel={handleWheel}>
-      <div
-        ref={containerRef}
-        className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-hide"
-      >
-        {children}
-      </div>
+    <div
+      ref={containerRef}
+      className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-hide"
+    >
+      {children}
     </div>
   );
 };
