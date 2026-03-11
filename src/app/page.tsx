@@ -45,21 +45,12 @@ export default function Home() {
     { id: "ceo", type: "ceo" },
     { id: "final", type: "final" },
   ];
-
-  const yearsOnly = sections.filter(
-    (s): s is Extract<SectionConfig, { type: "year" }> => s.type === "year",
-  );
-
   const goToSection = (index: number) => {
     if (index < 0 || index >= sections.length) return;
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
     setActiveSection(index);
     const sec = sections[index];
-    const hash = `#${sec.id}`;
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", hash);
-    }
     if (sec.type === "year") {
       setActiveYear(sec.year);
     }
@@ -70,19 +61,6 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const initialHash = window.location.hash.replace("#", "");
-    if (initialHash) {
-      const initialIndex = sections.findIndex((s) => s.id === initialHash);
-      if (initialIndex >= 0) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setActiveSection(initialIndex);
-        const sec = sections[initialIndex];
-        if (sec.type === "year") {
-          setActiveYear(sec.year);
-        }
-      }
-    }
 
     const disableScroll = () => {
       document.body.style.overflow = "hidden";
@@ -196,39 +174,41 @@ export default function Home() {
         />
       )}
 
-      <motion.main
-        className="h-screen w-screen bg-[#020617] text-white overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: showLoader ? 0 : 1 }}
-        transition={{ duration: 0.8, ease: "easeInOut" }}
-      >
-        <div className="h-full w-full overflow-hidden" onWheel={handleWheel}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={sections[activeSection].id}
-              className="h-screen w-screen"
-              initial={{
-                opacity: 0,
-                scale: 1.03,
-                filter: "blur(8px)",
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                filter: "blur(0px)",
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.96,
-                filter: "blur(10px)",
-              }}
-              transition={{ duration: 0.55, ease: "easeInOut" }}
-            >
-              {renderSection(sections[activeSection], activeSection)}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </motion.main>
+      {!showLoader && (
+        <motion.main
+          className="h-screen w-screen bg-[#020617] text-white overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+        >
+          <div className="h-full w-full overflow-hidden" onWheel={handleWheel}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={sections[activeSection].id}
+                className="h-screen w-screen"
+                initial={{
+                  opacity: 0,
+                  scale: 1.03,
+                  filter: "blur(8px)",
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  filter: "blur(0px)",
+                }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.96,
+                  filter: "blur(10px)",
+                }}
+                transition={{ duration: 0.55, ease: "easeInOut" }}
+              >
+                {renderSection(sections[activeSection], activeSection)}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </motion.main>
+      )}
     </>
   );
 }
@@ -281,7 +261,7 @@ const YearSlide: React.FC<YearSlideProps> = ({
     <div className="h-full w-full" onWheel={handleWheel}>
       <div
         ref={containerRef}
-        className="h-full w-full overflow-y-auto overflow-x-hidden"
+        className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-hide"
       >
         {children}
       </div>

@@ -2,8 +2,8 @@
 /* eslint-disable react-hooks/purity */
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
 
 type MemoryLoaderProps = {
   onFinish?: () => void;
@@ -20,6 +20,7 @@ type MemoryCard = {
   targetX: number;
   targetY: number;
   targetRot: number;
+  delay: number;
 };
 
 const IMAGE_SOURCES = [
@@ -44,12 +45,13 @@ const TITLE_TEXT = "10 Năm – Dấu Ấn Zinza";
 export const MemoryLoader: React.FC<MemoryLoaderProps> = ({ onFinish }) => {
   const [phase, setPhase] = useState<Phase>("scatter");
   const [typedText, setTypedText] = useState("");
+  const [cards, setCards] = useState<MemoryCard[]>([]);
 
-  const cards = useMemo<MemoryCard[]>(() => {
+  // Generate card layout only on the client to avoid SSR/client randomness mismatch
+  useEffect(() => {
     const count = 26;
     const result: MemoryCard[] = [];
 
-    // "1" stroke for the 10 (slightly thicker, clearer)
     const onePoints: { x: number; y: number }[] = [];
     const oneX = 40;
     for (let i = 0; i < 8; i += 1) {
@@ -59,7 +61,6 @@ export const MemoryLoader: React.FC<MemoryLoaderProps> = ({ onFinish }) => {
       }
     }
 
-    // "0" ellipse to the right of "1" (denser sampling)
     const zeroCenter = { x: 62, y: 50 };
     const zeroRadiusX = 10;
     const zeroRadiusY = 16;
@@ -81,6 +82,7 @@ export const MemoryLoader: React.FC<MemoryLoaderProps> = ({ onFinish }) => {
       const startRot = -12 + Math.random() * 24;
       const target = shapePoints[i % shapePoints.length];
       const targetRot = -8 + Math.random() * 16;
+      const delay = Math.random() * 0.4;
 
       result.push({
         id: i,
@@ -91,10 +93,12 @@ export const MemoryLoader: React.FC<MemoryLoaderProps> = ({ onFinish }) => {
         targetX: target.x,
         targetY: target.y,
         targetRot,
+        delay,
       });
     }
 
-    return result;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCards(result);
   }, []);
 
   useEffect(() => {
@@ -189,7 +193,7 @@ export const MemoryLoader: React.FC<MemoryLoaderProps> = ({ onFinish }) => {
                 transition={{
                   duration: isGathering ? GATHER_DURATION : 3.2,
                   ease: "easeInOut",
-                  delay: Math.random() * 0.4,
+                  delay: card.delay,
                   repeat: isGathering ? 0 : Infinity,
                   repeatType: "reverse",
                 }}

@@ -47,3 +47,12 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #0ea5e9, #4f46e5);
 }
+
+/* Hide scrollbar but keep scroll (e.g. hero year list) */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
